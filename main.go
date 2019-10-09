@@ -30,7 +30,7 @@ func main() {
 	)
 
 	if err != nil {
-		r.Error = 1
+		r.Error = 2
 		r.Text = err.Error()
 		fmt.Println(r.String())
 		return
@@ -45,7 +45,7 @@ func main() {
 	)
 
 	if err != nil {
-		r.Error = 1
+		r.Error = 2
 		r.Text = err.Error()
 		fmt.Println(r.String())
 		return
