@@ -51,15 +51,23 @@ func main() {
 		return
 	}
 
-	if h.Status == grpc_health.HealthCheckResponse_SERVICE_UNKNOWN {
+	// create response
+	duration := time.Since(start)
+
+	switch h.Status {
+	// unknown service - warning
+	case grpc_health.HealthCheckResponse_SERVICE_UNKNOWN:
 		r.Error = 1
 		r.Text = fmt.Sprintf("Service %v not known", serv)
 		fmt.Println(r.String())
 		return
+	// not service - error
+	case grpc_health.HealthCheckResponse_NOT_SERVING:
+		r.Error = 3
+		r.Text = fmt.Sprintf("Service health failing")
+		fmt.Println(r.String())
+		return
 	}
-
-	// create response
-	duration := time.Since(start)
 
 	r.AddChannel(prtg.SensorChannel{
 		Name:  "Response time",
@@ -67,20 +75,6 @@ func main() {
 		Unit:  prtg.UnitTimeResponse,
 		Float: 1,
 	})
-
-	statusChan := prtg.SensorChannel{
-		Name:  "Service status",
-		Float: 0,
-	}
-
-	switch h.Status {
-	case grpc_health.HealthCheckResponse_SERVING:
-		statusChan.Value = 0
-	case grpc_health.HealthCheckResponse_NOT_SERVING:
-		statusChan.Value = 1
-	}
-
-	r.AddChannel(statusChan)
 
 	fmt.Println(r.String())
 }
