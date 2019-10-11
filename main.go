@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/PRTG/go-prtg-sensor-api"
@@ -12,12 +13,20 @@ import (
 )
 
 var (
-	addr = flag.String("address", ":9001", "host:port address of grpc server")
-	serv = flag.String("service", "", "Service name to check (defaults to \"\")")
+	addr    = flag.String("address", ":9001", "host:port address of grpc server")
+	serv    = flag.String("service", "", "Service name to check (defaults to \"\")")
+	timeout = flag.Duration("timeout", 20*time.Second, "Configure the timeout for the health API request")
 )
 
 func main() {
 	flag.Parse()
+
+	// validate arguments
+	if *timeout < 0 {
+		_, _ = fmt.Fprintf(os.Stderr, "-timeout cannot be negative: %v\n", *timeout)
+		flag.Usage()
+		os.Exit(1)
+	}
 
 	// create a response and log start time
 	r := &prtg.SensorResponse{}
@@ -38,7 +47,8 @@ func main() {
 	defer conn.Close()
 
 	// call the health check rpc
-	h, err := grpc_health.NewHealthClient(conn).Check(context.Background(),
+	ctx, _ := context.WithTimeout(context.Background(), *timeout)
+	h, err := grpc_health.NewHealthClient(conn).Check(ctx,
 		&grpc_health.HealthCheckRequest{
 			Service: *serv,
 		},
