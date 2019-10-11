@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -9,7 +10,9 @@ import (
 
 	"github.com/PRTG/go-prtg-sensor-api"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	grpc_health "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -47,7 +50,10 @@ func main() {
 	defer conn.Close()
 
 	// call the health check rpc
-	ctx, _ := context.WithTimeout(context.Background(), *timeout)
+	ctx := context.Background()
+	if *timeout > 0 {
+		ctx, _ = context.WithTimeout(ctx, *timeout)
+	}
 	h, err := grpc_health.NewHealthClient(conn).Check(ctx,
 		&grpc_health.HealthCheckRequest{
 			Service: *serv,
@@ -56,7 +62,7 @@ func main() {
 
 	if err != nil {
 		r.Error = 2
-		r.Text = err.Error()
+		r.Text = textFromError(err)
 		fmt.Println(r.String())
 		return
 	}
@@ -87,4 +93,22 @@ func main() {
 	})
 
 	fmt.Println(r.String())
+}
+
+func textFromError(err error) string {
+	// check gRPC error codes
+	if s, ok := status.FromError(err); ok {
+		switch s.Code() {
+		case codes.DeadlineExceeded:
+			return fmt.Sprintf("Service %v did not respond within %v (deadline exceeded)", *addr, *timeout)
+		}
+	}
+
+	// check go error types
+	switch {
+	case errors.Is(err, context.DeadlineExceeded):
+		return fmt.Sprintf("Service %v did not respond within %v (deadline exceeded)", *addr, *timeout)
+	default:
+		return err.Error()
+	}
 }
