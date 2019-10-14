@@ -11,6 +11,11 @@ PRTG Custom Sensor for integrating with a `grpc_health_v1` endpoint
     2. The 'Parameters' setting is passed to the sensor as command line arguments. The following options are available:
         - `-address=<host:port>` sets the address of the gRPC server (defaults to `localhost:9001`)
         - `-service=<service_name>` (Optional) Sets the name of the service to query (defaults to none)
+        - `-timeout=<timeout>` (Optional) Sets a custom timeout for health API request (defaults to 20s), see 
+          [ParseDuration] for the available format.
         
 That's it. When everything is working correctly the sensor will provide the response time for the health check, or an
  error if the service is unreachable, or the health is set to `NOT_SERVING`
+
+
+[ParseDuration]: https://golang.org/pkg/time/#ParseDuration
